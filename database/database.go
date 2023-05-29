@@ -2,7 +2,9 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/Akhanrok/go_labs/models"
 	_ "github.com/go-sql-driver/mysql"
@@ -10,6 +12,32 @@ import (
 
 type Database struct {
 	db *sql.DB
+}
+
+type UserNotFoundError struct {
+	Email string
+}
+
+func (e UserNotFoundError) Error() string {
+	return fmt.Sprintf("user not found: %s", e.Email)
+}
+
+type ProductNotFoundError struct {
+	ProductID uint
+}
+
+func (e ProductNotFoundError) Error() string {
+	return fmt.Sprintf("product not found: %d", e.ProductID)
+}
+
+var (
+	ErrInvalidEmail = errors.New("invalid email address")
+)
+
+func IsValidEmail(email string) bool {
+	pattern := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+	match, _ := regexp.MatchString(pattern, email)
+	return match
 }
 
 func NewDatabase(dataSourceName string) (*Database, error) {
@@ -31,6 +59,10 @@ func (d *Database) Close() {
 }
 
 func (d *Database) CreateUser(user *models.User) error {
+	if !IsValidEmail(user.Email) {
+		return ErrInvalidEmail
+	}
+
 	statement := `INSERT INTO users (name, email, password, created_at) VALUES (?, ?, ?, ?)`
 	_, err := d.db.Exec(statement, user.Name, user.Email, user.Password, user.CreatedAt)
 	if err != nil {
