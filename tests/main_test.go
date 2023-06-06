@@ -11,8 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Akhanrok/go_labs/handlers"
-	"github.com/Akhanrok/go_labs/repositories"
+	"github.com/Akhanrok/go_labs/handlers/list_handlers"
+	"github.com/Akhanrok/go_labs/handlers/user_handlers"
+	"github.com/Akhanrok/go_labs/repositories/database_repository"
+	"github.com/Akhanrok/go_labs/repositories/user_repository"
 	"github.com/Akhanrok/go_labs/services"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
@@ -28,7 +30,7 @@ var (
 func TestMain(m *testing.M) {
 	// Create a test database connection
 	var err error
-	db, err = repositories.NewDatabase("root:w8-!oY4-taa630-lsKnW0ut@tcp(localhost:3306)/shopping_list_app_test")
+	db, err = database_repository.NewDatabase("root:w8-!oY4-taa630-lsKnW0ut@tcp(localhost:3306)/shopping_list_app_test")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,7 +56,7 @@ func TestIndexHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handlers.IndexHandler)
+	handler := http.HandlerFunc(user_handlers.IndexHandler)
 
 	handler.ServeHTTP(rr, req)
 
@@ -70,7 +72,7 @@ func TestIndexHandler(t *testing.T) {
 
 func TestLoginHandler_ValidCredentials(t *testing.T) {
 	// Initialize the test database with a user
-	userRepo := repositories.NewUserRepository(db)
+	userRepo := user_repository.NewUserRepository(db)
 	_, err := userRepo.ValidateCredentials("test@example.com", "password123")
 	if err != nil {
 		t.Fatal(err)
@@ -85,7 +87,7 @@ func TestLoginHandler_ValidCredentials(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.LoginHandler(w, r, db, store)
+		user_handlers.LoginHandler(w, r, db, store)
 	})
 
 	handler.ServeHTTP(rr, req)
@@ -110,7 +112,7 @@ func TestLoginHandler_InvalidCredentials(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.LoginHandler(w, r, db, store)
+		user_handlers.LoginHandler(w, r, db, store)
 	})
 
 	handler.ServeHTTP(rr, req)
@@ -144,7 +146,7 @@ func TestCreateListHandler(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	// Call the handler function
-	handlers.CreateListHandler(recorder, req, db, store)
+	list_handlers.CreateListHandler(recorder, req, db, store)
 
 	// Check the response status code
 	if recorder.Code != http.StatusFound {
@@ -173,7 +175,7 @@ func TestCheckCredentials_Performance(t *testing.T) {
 	}
 	defer db.Close()
 
-	userRepo := repositories.NewUserRepository(db)
+	userRepo := user_repository.NewUserRepository(db)
 
 	_, err = userRepo.ValidateCredentials("test@example.com", "password123")
 	if err != nil {
@@ -205,7 +207,7 @@ func TestCreateListHandler_Performance(t *testing.T) {
 
 	// Call the handler function
 	rr := httptest.NewRecorder()
-	handlers.CreateListHandler(recorder, req, db, store)
+	list_handlers.CreateListHandler(recorder, req, db, store)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("Handler returned wrong status code: got %v, want %v", status, http.StatusOK)
@@ -242,7 +244,7 @@ func TestLoginHandler_Performance(t *testing.T) {
 
 	// Call the handler function
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.LoginHandler(w, r, db, store)
+		user_handlers.LoginHandler(w, r, db, store)
 	})
 
 	handler.ServeHTTP(rr, req)
@@ -283,7 +285,7 @@ func TestRegisterHandler_Performance(t *testing.T) {
 
 	// Call the handler function
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.RegisterHandler(w, r, db)
+		user_handlers.RegisterHandler(w, r, db)
 	})
 
 	handler.ServeHTTP(rr, req)
@@ -317,7 +319,7 @@ func TestViewListsHandler_Performance(t *testing.T) {
 
 	// Call the handler function
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlers.ViewListsHandler(w, r, db, store)
+		list_handlers.ViewListsHandler(w, r, db, store)
 	})
 
 	handler.ServeHTTP(rr, req)
